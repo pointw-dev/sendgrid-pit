@@ -1,0 +1,66 @@
+:root {
+  --color-bg: #212529;
+  --color-surface: #131B23;
+  --color-accent: #2c3e50;
+  --color-text: #e0e1dd;
+}
+
+html, body, #app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: system-ui, sans-serif;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.title-bar {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background-color: var(--color-surface);
+}
+
+.title-bar .logo {
+  width: 40px;
+  height: 40px;
+}
+
+.title-bar .app-title {
+  margin-left: 0.5rem;
+  font-size: 1.5rem;
+}
+
+.main-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 450px;
+  background-color: var(--color-surface);
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.content {
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.footer {
+  background-color: var(--color-surface);
+  text-align: center;
+  padding: 0.5rem;
+}
+

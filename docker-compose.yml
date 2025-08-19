@@ -1,0 +1,20 @@
+services:
+  sendgrid-pit:
+    image: pointw/sendgrid-pit
+    container_name: sendgrid-pit
+    ports:
+      - 3000:3000
+    environment:
+      API_KEY: SG.mock-sendgrid
+      MONGO_URI: mongodb://mongo:27017
+
+  mongo:
+    image: mongo
+    container_name: sendgrid-pit-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - sendgrid-pit-mongo-data:/data/db
+
+volumes:
+  sendgrid-pit-mongo-data:
