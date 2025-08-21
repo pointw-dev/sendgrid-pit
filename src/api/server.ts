@@ -53,6 +53,7 @@ app.post(
         read: false
       };
       await addMessage(msg);
+      console.log(JSON.stringify({label: 'SendGrid message received', level: 'info', message: msg}));
       res.status(202).header({
         'X-Message-ID': msg.id,
       }).send();
