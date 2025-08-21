@@ -37,6 +37,7 @@ app.post(
     const reqApiKey = req.headers.authorization;
 
     if (!(API_KEY == 'unset' || reqApiKey === `Bearer ${API_KEY}`)) {
+      console.log(JSON.stringify({label: 'Unauthorized attempt to sent SendGrid message', level: 'error'}));
       res.status(403).send({
         errors: [{
           message: 'Failed authentication',
