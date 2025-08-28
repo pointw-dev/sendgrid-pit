@@ -22,7 +22,7 @@ const validator = new Validator({
 addFormats(validator.ajv);
 const { validate } = validator;
 const app = express();
-const PORT = process.env.PORT ?? 3000;
+const PORT = process.env.PORT ?? 8825;
 const API_KEY = process.env.API_KEY ?? 'unset';
 
 app.use(cors());

@@ -14,7 +14,7 @@ Use the included docker-compose.yml file to spin up sendgrid-pit and mongo, or u
 
 Alternately (minimal and ephemeral)
 ```bash
-docker run -d --rm --name sendgrid-pit -p 3000:3000 pointw/sendgrid-pit
+docker run -d --rm --name sendgrid-pit -p 8825:8825 pointw/sendgrid-pit
 ```
 
 ## Use the emulator
@@ -33,7 +33,7 @@ const apiKey = useEmulator? 'SG.mock-sendgrid' : 'SG.real-api-key'
 export async function sendEmail() {
     client.setApiKey(apiKey);
     if (useEmulator) {
-      client.setDefaultRequest('baseUrl', 'http://localhost:3000');
+      client.setDefaultRequest('baseUrl', 'http://localhost:8825');
     }
     sendGridClient.setClient(client);
 
@@ -75,11 +75,11 @@ export async function sendEmail() {
 
 ## UI
 
-* Browse to http://localhost:3000 (change the port here if you changed the `PORT` environment variable)
+* Browse to http://localhost:8825 (change the port here if you changed the `PORT` environment variable)
 
 ## Environment Variables
 
-* PORT - (default `3000`) the port the emulator listens on (both api and ui)
+* PORT - (default `8825`) the port the emulator listens on (both api and ui)
 * API_KEY - (optional) if set, causes the emulator to reject as unauthorized any POSTs to the send message endpoint if the sendgrid client was not configured with this API_KEY
 * MONGO_URI - (optional) if set, causes messages POSTed to the emulator to be saved in mongo - otherwise it is just stored in memory
 * MONGO_DB_NAME (default `sendgrid-pit`) - the name of the mongodb

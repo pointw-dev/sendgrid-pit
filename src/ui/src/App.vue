@@ -31,6 +31,14 @@
                     <td>To:</td>
                     <td>{{ allToEmails(selected) }}</td>
                   </tr>
+                  <tr v-if="allCcEmails(selected)">
+                    <td>CC:</td>
+                    <td>{{ allCcEmails(selected) }}</td>
+                  </tr>
+                  <tr v-if="allBccEmails(selected)">
+                    <td>BCC:</td>
+                    <td>{{ allBccEmails(selected) }}</td>
+                  </tr>
                   <tr v-if="selected.payload.subject">
                     <td>Subject:</td>
                     <td>{{ selected.payload.subject }}</td>
@@ -278,6 +286,18 @@ function pretty(v: unknown) {
 function allToEmails(msg: MailMessage) {
   return (msg.payload.personalizations ?? [])
       .flatMap((p: any) => (p.to ?? []).map((t: any) => t.email))
+      .join(", ");
+}
+
+function allCcEmails(msg: MailMessage) {
+  return (msg.payload.personalizations ?? [])
+      .flatMap((p: any) => (p.cc ?? []).map((t: any) => t.email))
+      .join(", ");
+}
+
+function allBccEmails(msg: MailMessage) {
+  return (msg.payload.personalizations ?? [])
+      .flatMap((p: any) => (p.bcc ?? []).map((t: any) => t.email))
       .join(", ");
 }
 

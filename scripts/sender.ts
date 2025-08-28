@@ -62,12 +62,16 @@ async function sendEmail(url, content) {
     sendGridClient.setClient(client);
 
     const message: MailDataRequired = {
+        // to: ['michael@pointw.com', 'to2@pointw.com'],
+        // cc: ['cc1@pointw.com', 'cc2@pointw.com'],
+        // bcc: ['bcc1@pointw.com', 'bcc2@pointw.com'],
         to: 'michael@pointw.com',
         from: 'richard@pointw.com',
         replyTo: 'ottosonm@gmail.com',
         ...content
     };
 
+    console.log(JSON.stringify(sendGridClient, null, 2))
     const [response, _] = await sendGridClient.send(message);
     return response
 }
