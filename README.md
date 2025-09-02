@@ -77,6 +77,25 @@ export async function sendEmail() {
 
 * Browse to http://localhost:8825 (change the port here if you changed the `PORT` environment variable)
 
+## CLI Sender (sg-sender)
+
+Use the interactive CLI in `scripts/tui` to send messages via real SendGrid or this emulator.
+
+- Build: `cd scripts/tui && npm i && npm run build`
+- Run: `node dist/cli.js` (prompts for missing values)
+- Quick PIT: `node dist/cli.js --provider pit --base-url http://localhost:8825 --from you@ex.com --to me@ex.com --subject "Hi" --text "Hello"`
+- Quick SendGrid: `node dist/cli.js --provider sendgrid --api-key $SENDGRID_API_KEY --from you@ex.com --to me@ex.com --template-id d-...`
+
+Answers and defaults
+- Saves non‑secret defaults to `sg-sender.answers.json` (change with `--answers-file path.json`).
+- `--defaults` uses saved values without prompting; otherwise prompts but pre‑fills from the answers file.
+- For provider `sendgrid`, API key is masked and not saved; for `pit`, API key is optional and saved if provided.
+
+Editing HTML/JSON
+- For multi‑line HTML and dynamic template data, the CLI opens your `$VISUAL`/`$EDITOR` (falls back to nano or notepad). Save and close to continue.
+
+See `scripts/tui/README.md` for full CLI options and examples.
+
 ## Environment Variables
 
 * PORT - (default `8825`) the port the emulator listens on (both api and ui)
