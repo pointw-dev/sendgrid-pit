@@ -6,7 +6,9 @@ import { randomUUID } from 'node:crypto';
 import addFormats from 'ajv-formats';
 import { Validator, ValidationError } from 'express-json-validator-middleware';
 import { v3MailSend } from './message.schema';
+import { templateCreateSchema } from './template.schema.js';
 import { addClient, addMessage, getMessages, deleteMessage, setRead, clearMessages, markAllRead } from './store.js';
+import { addTemplate, deleteTemplate, getTemplates } from './template.store.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uiDir = path.resolve(
@@ -66,6 +68,29 @@ app.get('/api/messages', async (_req, res) => res.json(await getMessages()));
 
 app.delete('/api/messages/:id', async (req, res) => {
   await deleteMessage(req.params.id);
+  res.status(204).end();
+});
+
+// Templates API
+app.get('/api/templates', async (_req, res) => {
+  res.json(await getTemplates());
+});
+
+app.post('/api/templates', validate({ body: templateCreateSchema }), async (req, res) => {
+  const { title, templateId, templateBody } = req.body ?? {};
+  const tpl = {
+    id: randomUUID(),
+    title,
+    templateId,
+    templateBody: typeof templateBody === 'string' ? templateBody : '',
+    createdAt: new Date().toISOString(),
+  };
+  await addTemplate(tpl);
+  res.status(201).json(tpl);
+});
+
+app.delete('/api/templates/:id', async (req, res) => {
+  await deleteTemplate(req.params.id);
   res.status(204).end();
 });
 

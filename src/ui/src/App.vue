@@ -8,7 +8,7 @@
       />
       <h1 class="app-title">sendgrid-pit</h1>
     </header>
-    <div class="main-layout">
+    <div class="main-layout" v-if="mainTab === 'messages'">
       <aside class="sidebar">
         <MessageList
             :messages="messages"
@@ -120,6 +120,48 @@
         </div>
       </main>
     </div>
+
+    <div class="main-layout" v-else>
+      <aside class="sidebar">
+        <TemplateList
+          :templates="templates"
+          @add="addTemplate"
+          @select="selectTemplate"
+          @delete="deleteTemplate"
+        />
+      </aside>
+      <main class="content">
+        <div class="template-detail" v-if="selectedTemplate">
+          <div class="template-detail-header">
+            <div class="title">{{ selectedTemplate.title }}</div>
+            <div class="subtitle">{{ selectedTemplate.templateId }}</div>
+          </div>
+          <div class="template-editor-placeholder">
+            Template editor coming soon.
+          </div>
+        </div>
+        <div v-else class="template-empty">
+          <em>Select a template to edit.</em>
+        </div>
+      </main>
+    </div>
+
+    <div class="bottom-tabs">
+      <button
+        class="tab"
+        :class="{ active: mainTab === 'messages' }"
+        @click="mainTab = 'messages'"
+      >
+        Messages
+      </button>
+      <button
+        class="tab"
+        :class="{ active: mainTab === 'templates' }"
+        @click="mainTab = 'templates'"
+      >
+        Templates
+      </button>
+    </div>
   </div>
 </template>
 
@@ -127,13 +169,19 @@
 import { ref, onMounted, computed, watch } from "vue";
 import { storeToRefs } from "pinia";
 import { useMessagesStore, type MailMessage } from "./stores/messages";
+import { useTemplatesStore, type TemplateItem as UITemplateItem } from "./stores/templates";
 import MessageList from "./components/MessageList.vue";
+import TemplateList from "./components/TemplateList.vue";
 
 const store = useMessagesStore();
 const {messages} = storeToRefs(store);
+const templateStore = useTemplatesStore();
+const { templates } = storeToRefs(templateStore);
 const selected = ref<MailMessage | null>(null);
 const tab = ref("");
 const copied = ref(false);
+const mainTab = ref<'messages' | 'templates'>('messages');
+const selectedTemplate = ref<UITemplateItem | null>(null);
 
 type TabInfo = {
   label: string;
@@ -253,6 +301,12 @@ onMounted(async () => {
   store.connectSSE();
 });
 
+watch(mainTab, async (v) => {
+  if (v === 'templates') {
+    await templateStore.load();
+  }
+});
+
 async function selectMessage(m: MailMessage) {
   selected.value = m;
   await store.markRead(m.id);
@@ -263,6 +317,19 @@ async function deleteMessage(m: MailMessage) {
   if (selected.value?.id === m.id) {
     selected.value = null;
   }
+}
+
+async function addTemplate(payload: { title: string; templateId: string }) {
+  await templateStore.add(payload.title, payload.templateId);
+}
+
+function selectTemplate(t: UITemplateItem) {
+  selectedTemplate.value = t;
+}
+
+async function deleteTemplate(t: UITemplateItem) {
+  await templateStore.remove(t.id);
+  if (selectedTemplate.value?.id === t.id) selectedTemplate.value = null;
 }
 
 async function copyId(id: string) {
@@ -350,5 +417,45 @@ function allBccEmails(msg: MailMessage) {
 .message-view {
   color: black;
   background-color: #B3B7BB;
+}
+
+.bottom-tabs {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem 0;
+  background-color: var(--color-surface);
+  border-top: 1px solid var(--color-accent);
+}
+
+.bottom-tabs .tab {
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-accent);
+  border-top: none; /* flip to bottom-rounded tabs */
+  padding: 0.25rem 0.75rem;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+  cursor: pointer;
+}
+.bottom-tabs .tab.active {
+  background: #2c3e50;
+}
+
+.template-detail {
+  border: 1px solid #2c3e50;
+  border-radius: 8px;
+  padding: 1rem;
+}
+.template-detail .title {
+  font-weight: 600;
+}
+.template-detail .subtitle {
+  color: #9aa5b1;
+}
+.template-editor-placeholder {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
 }
 </style>
