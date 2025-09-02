@@ -89,6 +89,8 @@ export async function sendEmail() {
 ## Roadmap
 * render templates in viewer
 * improved message list (group by sender | recipient/mailbox | none, sorting, searching, filtering)
+* forward from sendgrid-pit to SendGrid (?) - adjusting message id
+  * get status of actual delivery using message id
 
 
 ## Acknowledgements:  

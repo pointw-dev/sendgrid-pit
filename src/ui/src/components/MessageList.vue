@@ -23,46 +23,23 @@
       </v-btn>
     </div>
     <div class="message-list-items">
-      <v-card
+      <MessageItem
         v-for="m in messages"
         :key="m.id"
-        class="message-list-item"
-        @click="$emit('select', m)"
-      >
-        <v-row>
-          <v-col class="text-grey">
-            <v-icon class="pr-2">{{ m.read? 'mdi-email-open' : 'mdi-email'}}</v-icon>
-            <span :class="{ unread: !m.read }">{{ m.payload.from.email }}</span><br/>
-            To: {{ allToEmails(m) }}<br/>
-            {{ m.payload.template_id ? `\{${m.payload.template_id}\}` : m.payload.content[0].value }}
-          </v-col>
-          <v-col class="text-right">
-            {{ timeAgo(m.receivedAt) }}<br/><br/>
-            <v-btn
-                class="bg-red-darken-4"
-                size="x-small"
-                @click="$emit('delete', m)"
-            >
-              <v-icon>mdi-delete</v-icon>
-            </v-btn>
-          </v-col>
-        </v-row>
-      </v-card>
+        :message="m"
+        @select="$emit('select', m)"
+        @delete="$emit('delete', m)"
+      />
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { onMounted, onUnmounted } from "vue";
 import { useMessagesStore, type MailMessage } from "../stores/messages";
+import MessageItem from './MessageItem.vue';
 
 const store = useMessagesStore();
-
-
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
-dayjs.extend(relativeTime);
-
 
 defineProps<{ messages: MailMessage[] }>();
 
@@ -82,25 +59,6 @@ onMounted(() => {
 onUnmounted(() => {
   clearInterval(timer);
 });
-
-function timeAgo(date: string | number | Date) {
-  const d = new Date(date);
-  return dayjs(d).from(store.now.value);
-}
-
-function allToEmails(msg: MailMessage) {
-  return (msg.payload.personalizations ?? [])
-    .flatMap((p: any) => (p.to ?? []).map((t: any) => t.email))
-    .join(", ");
-}
-
-function pretty(v: unknown) {
-  try {
-    return JSON.stringify(v, null, 2);
-  } catch {
-    return String(v);
-  }
-}
 </script>
 
 <style scoped>
@@ -120,51 +78,9 @@ function pretty(v: unknown) {
   margin: 0;
 }
 
-.message-list-item {
-  background-color: #0d1b2a;
-  color: white;
-  border: 1px solid #2c3e50;
-  border-radius: 8px;
-  padding: 0.5rem;
-  margin-bottom: 0.5rem;
-  cursor: pointer;
-}
-
 .unread {
   font-weight: bold;
   color: silver;
 }
-
-.message-list-item-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.message-list-item-actions {
-  display: flex;
-  gap: 0.25rem;
-  align-items: center;
-}
-
-.delete-button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 1rem;
-  line-height: 1;
-  padding: 0;
-}
-
-.delete-button:hover {
-  color: #ff8080;
-}
-
-.message-list-item-body {
-  white-space: pre-wrap;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 0.5rem;
-  border-radius: 4px;
-  margin-top: 0.5rem;
-}
 </style>
+

@@ -3,7 +3,7 @@ import client from '@sendgrid/client';
 import { MailDataRequired } from '@sendgrid/mail'
 
 
-const body = 'Message for you, sir!';
+const body = 'Message for you, sir!  It is a missive from the tallest tower at Swamp Castle.  It appears to be from a princess, but the writing style is ambiguous.  Clearly it is a call for assistance.';
 
 const html = `<!doctype html>
 <html lang="en">
@@ -65,7 +65,7 @@ async function sendEmail(url, content) {
         // to: ['michael@pointw.com', 'to2@pointw.com'],
         // cc: ['cc1@pointw.com', 'cc2@pointw.com'],
         // bcc: ['bcc1@pointw.com', 'bcc2@pointw.com'],
-        to: 'michael@pointw.com',
+        to: 'notification-scheduler@trinnex.io, someone-else@pernod-ricard.ca',
         from: 'richard@pointw.com',
         replyTo: 'ottosonm@gmail.com',
         ...content
@@ -79,7 +79,7 @@ async function sendEmail(url, content) {
 
 (async () => {
     if (process.argv.length != 4) {
-        console.log('USAGE: sender.ts body|template port')
+        console.log('USAGE: sender.ts text|html|template port')
         process.exit(1)
     }
 
