@@ -10,8 +10,13 @@ export async function sendMail(
   payload: BuiltMailPayload,
   baseUrl?: string
 ): Promise<SendResult> {
-  // We post directly to the SendGrid-compatible REST API so we can swap baseUrl for PIT.
-  const url = `${(baseUrl || process.env.SENDGRID_BASE_URL || "https://api.sendgrid.com").replace(/\/$/, "")}/v3/mail/send`;
+  // We post directly to the SendGrid-compatible REST API.
+  // For real SendGrid, always use the official host and ignore overrides.
+  // For PIT, allow baseUrl/env override.
+  const effectiveBase = provider === 'sendgrid'
+    ? 'https://api.sendgrid.com'
+    : (baseUrl || process.env.SENDGRID_BASE_URL || 'http://localhost:8825');
+  const url = `${effectiveBase.replace(/\/$/, "")}/v3/mail/send`;
   try {
     const res = await axios.post(url, payload, {
       headers: {

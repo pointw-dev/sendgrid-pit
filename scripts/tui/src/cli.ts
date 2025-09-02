@@ -16,6 +16,7 @@ function arrayCoerce(x: unknown): string[] | undefined {
   return undefined;
 }
 
+async function main() {
 const argv = await yargs(hideBin(process.argv))
   .scriptName('sendgrid-cli')
   .usage('$0 [options]')
@@ -33,17 +34,18 @@ const argv = await yargs(hideBin(process.argv))
   .option('text', { type: 'string', describe: 'Plain text body' })
   .option('html', { type: 'string', describe: 'HTML body' })
   .option('attachments', { type: 'array', describe: 'File paths (comma-separated or repeated)', coerce: arrayCoerce })
+  .option('answers-file', { type: 'string', describe: 'Path to answers file (JSON)', default: process.env.SG_SENDER_ANSWERS || 'sg-sender.answers.json' })
   .option('defaults', { type: 'boolean', describe: 'Use saved defaults without prompting for them', default: false })
   .option('dry-run', { type: 'boolean', describe: 'Print payload and exit', default: false })
   .help()
   .parse();
 
 // Load persisted defaults and merge with CLI/env-provided values (CLI wins)
-const persisted = loadAnswers();
+const persisted = loadAnswers(undefined, argv['answers-file'] as string);
 const partial: CliArgs = {
   ...persisted,
   provider: (argv.provider as Provider | undefined) ?? persisted.provider,
-  apiKey: argv["api-key"] ?? undefined,
+  apiKey: (argv["api-key"] as string | undefined) ?? (persisted.apiKey as string | undefined),
   baseUrl: (argv["base-url"] as string | undefined) ?? persisted.baseUrl,
   from: (argv.from as string | undefined) ?? persisted.from,
   to: (argv.to as string[] | undefined) ?? persisted.to,
@@ -65,7 +67,7 @@ const args = await promptMissingArgs(partial, { askAll: !argv.defaults });
 const payload = buildPayload(args);
 
 // Persist answers for future runs (exclude apiKey for safety)
-try { saveAnswers(args); } catch { /* ignore */ }
+try { saveAnswers(args, undefined, argv['answers-file'] as string); } catch { /* ignore */ }
 
 if (args.dryRun) {
   // eslint-disable-next-line no-console
@@ -91,3 +93,10 @@ if (res.ok) {
   console.error(`❌ Failed: status=${res.status}`, res.details ?? '');
   process.exit(1);
 }
+}
+
+void main().catch((err) => {
+  // eslint-disable-next-line no-console
+  console.error(err instanceof Error ? err.message : String(err));
+  process.exit(1);
+});
