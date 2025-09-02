@@ -3,112 +3,116 @@ import prompts, { PromptObject } from "prompts";
 import type { CliArgs, Provider } from "./types.js";
 import { coerceList, tryParseJSON } from "./util.js";
 
-export async function promptMissingArgs(partial: CliArgs): Promise<CliArgs> {
+export async function promptMissingArgs(partial: CliArgs, options?: { askAll?: boolean }): Promise<CliArgs> {
+  const askAll = Boolean(options?.askAll);
   // Build questions only for values that aren't already provided on the command line
   const qs: PromptObject[] = [];
 
-  if (!partial.provider) {
+  if (askAll || !partial.provider) {
+    const initialIndex = (partial.provider === 'pit') ? 1 : 0;
     qs.push({
       type: 'select', name: 'provider', message: 'Provider', choices: [
         { title: 'SendGrid (real)', value: 'sendgrid' },
         { title: 'sendgrid-pit (compatible sandbox)', value: 'pit' },
-      ]
+      ], initial: initialIndex
     });
   }
 
-  if (!partial.apiKey) {
-    qs.push({ type: 'password', name: 'apiKey', message: 'API Key', validate: v => v ? true : 'Required' });
+  if (askAll || !partial.apiKey) {
+    qs.push({ type: 'password', name: 'apiKey', message: 'API Key', validate: (v: string) => v ? true : 'Required' });
   }
 
-  if (!partial.baseUrl) {
+  if (askAll || !partial.baseUrl) {
     qs.push({
-      type: (prev, values) => (values.provider === 'pit' || partial.provider === 'pit') ? 'text' : null,
+      type: (prev: unknown, values: any) => (values.provider === 'pit' || partial.provider === 'pit') ? 'text' : null,
       name: 'baseUrl',
-      message: 'Base URL for PIT (e.g. http://localhost:3000)',
-      initial: 'http://localhost:3000'
+      message: 'Base URL for PIT (e.g. http://localhost:8825)',
+      initial: partial.baseUrl || 'http://localhost:8825'
     });
   }
 
-  if (!partial.from) {
-    qs.push({ type: 'text', name: 'from', message: 'From email', initial: process.env.FROM_EMAIL || '' , validate: v => /@/.test(v) || 'Enter a valid email' });
+  if (askAll || !partial.from) {
+    qs.push({ type: 'text', name: 'from', message: 'From email', initial: partial.from || process.env.FROM_EMAIL || '' , validate: (v: string) => /@/.test(v) || 'Enter a valid email' });
   }
 
-  if (!partial.to) {
-    qs.push({ type: 'text', name: 'to', message: 'To (comma-separated emails)' });
+  if (askAll || !partial.to) {
+    qs.push({ type: 'text', name: 'to', message: 'To (comma-separated emails)', initial: (partial.to || []).join(', ') });
   }
 
-  if (!partial.cc) {
-    qs.push({ type: 'text', name: 'cc', message: 'Cc (comma-separated emails)', initial: '' });
+  if (askAll || !partial.cc) {
+    qs.push({ type: 'text', name: 'cc', message: 'Cc (comma-separated emails)', initial: (partial.cc || []).join(', ') });
   }
 
-  if (!partial.bcc) {
-    qs.push({ type: 'text', name: 'bcc', message: 'Bcc (comma-separated emails)', initial: '' });
+  if (askAll || !partial.bcc) {
+    qs.push({ type: 'text', name: 'bcc', message: 'Bcc (comma-separated emails)', initial: (partial.bcc || []).join(', ') });
   }
 
   // Choice between Template or Body
-  if (!partial.templateId && !partial.html && !partial.text) {
+  const defaultMode = partial.templateId ? 'template' : 'body';
+  if (askAll || (!partial.templateId && !partial.html && !partial.text)) {
     qs.push({
       type: 'select', name: 'mode', message: 'Email content', choices: [
         { title: 'Dynamic Template', value: 'template' },
         { title: 'Subject + Body (text/html)', value: 'body' }
-      ], initial: 0
+      ], initial: defaultMode === 'template' ? 0 : 1
     });
   }
 
   // If using template
-  qs.push({
-    type: (prev, values) => {
-      const usingTemplate = (!!partial.templateId) || (values.mode === 'template');
-      return usingTemplate && !partial.templateId ? 'text' : null;
-    },
-    name: 'templateId', message: 'Template ID'
-  });
+  if (askAll || !partial.templateId) {
+    qs.push({
+      type: (prev: unknown, values: any) => {
+        const usingTemplate = (values.mode ? values.mode === 'template' : defaultMode === 'template');
+        return usingTemplate ? 'text' : null;
+      },
+      name: 'templateId', message: 'Template ID', initial: partial.templateId || ''
+    });
+  }
 
-  qs.push({
-    type: (prev, values) => {
-      const usingTemplate = (!!partial.templateId) || (values.mode === 'template');
-      return usingTemplate && !partial.data ? 'text' : null;
-    },
-    name: 'data', message: 'dynamicTemplateData (JSON)', initial: '{}'
-  });
+  if (askAll || !partial.data) {
+    qs.push({
+      type: (prev: unknown, values: any) => {
+        const usingTemplate = (values.mode ? values.mode === 'template' : defaultMode === 'template');
+        return usingTemplate ? 'text' : null;
+      },
+      name: 'data', message: 'dynamicTemplateData (JSON)', initial: partial.data ? JSON.stringify(partial.data) : '{}'
+    });
+  }
 
   // If using body
-  if (!partial.subject) {
+  if (askAll || !partial.subject) {
     qs.push({
-      type: (prev, values) => {
-        const usingTemplate = (!!partial.templateId) || (values.mode === 'template');
-        return usingTemplate ? 'text' : 'text'; // subject is allowed in both (used if template subject not set)
-      },
-      name: 'subject', message: 'Subject', initial: 'Test Email'
+      type: (prev: unknown, values: any) => 'text',
+      name: 'subject', message: 'Subject', initial: partial.subject ?? 'Test Email'
     });
   }
 
-  if (!partial.text && !partial.templateId) {
+  if (askAll || (!partial.text && !partial.templateId)) {
     qs.push({
-      type: (prev, values) => {
-        const usingTemplate = (!!partial.templateId) || (values.mode === 'template');
+      type: (prev: unknown, values: any) => {
+        const usingTemplate = (values.mode ? values.mode === 'template' : defaultMode === 'template');
         return usingTemplate ? null : 'text';
       },
-      name: 'text', message: 'Text body (leave blank if using only HTML)', initial: ''
+      name: 'text', message: 'Text body (leave blank if using only HTML)', initial: partial.text ?? ''
     });
   }
 
-  if (!partial.html && !partial.templateId) {
+  if (askAll || (!partial.html && !partial.templateId)) {
     qs.push({
-      type: (prev, values) => {
-        const usingTemplate = (!!partial.templateId) || (values.mode === 'template');
+      type: (prev: unknown, values: any) => {
+        const usingTemplate = (values.mode ? values.mode === 'template' : defaultMode === 'template');
         return usingTemplate ? null : 'text';
       },
-      name: 'html', message: 'HTML body (leave blank to auto-generate from text)', initial: ''
+      name: 'html', message: 'HTML body (leave blank to auto-generate from text)', initial: partial.html ?? ''
     });
   }
 
-  if (!partial.replyTo) {
-    qs.push({ type: 'text', name: 'replyTo', message: 'Reply-To (optional)', initial: '' });
+  if (askAll || !partial.replyTo) {
+    qs.push({ type: 'text', name: 'replyTo', message: 'Reply-To (optional)', initial: partial.replyTo ?? '' });
   }
 
-  if (!partial.attachments) {
-    qs.push({ type: 'text', name: 'attachments', message: 'Attachments (comma-separated file paths)', initial: '' });
+  if (askAll || !partial.attachments) {
+    qs.push({ type: 'text', name: 'attachments', message: 'Attachments (comma-separated file paths)', initial: (partial.attachments || []).join(', ') });
   }
 
   const answers = qs.length ? await prompts(qs, { onCancel: () => { process.exit(1); } }) : {};

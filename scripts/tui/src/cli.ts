@@ -6,6 +6,7 @@ import { hideBin } from "yargs/helpers";
 import { promptMissingArgs } from "./tui.js";
 import { buildPayload } from "./buildPayload.js";
 import { sendMail } from "./providers.js";
+import { loadAnswers, saveAnswers } from './answers.js';
 import type { CliArgs, Provider } from "./types.js";
 
 function arrayCoerce(x: unknown): string[] | undefined {
@@ -32,32 +33,39 @@ const argv = await yargs(hideBin(process.argv))
   .option('text', { type: 'string', describe: 'Plain text body' })
   .option('html', { type: 'string', describe: 'HTML body' })
   .option('attachments', { type: 'array', describe: 'File paths (comma-separated or repeated)', coerce: arrayCoerce })
+  .option('defaults', { type: 'boolean', describe: 'Use saved defaults without prompting for them', default: false })
   .option('dry-run', { type: 'boolean', describe: 'Print payload and exit', default: false })
   .help()
   .parse();
 
+// Load persisted defaults and merge with CLI/env-provided values (CLI wins)
+const persisted = loadAnswers();
 const partial: CliArgs = {
-  provider: argv.provider as Provider | undefined,
-  apiKey: argv["api-key"],
-  baseUrl: argv["base-url"],
-  from: argv.from,
-  to: argv.to as string[] | undefined,
-  cc: argv.cc as string[] | undefined,
-  bcc: argv.bcc as string[] | undefined,
-  subject: argv.subject,
-  replyTo: argv["reply-to"],
-  templateId: argv["template-id"],
-  data: argv.data ? (() => { try { return JSON.parse(argv.data as string); } catch { return undefined; } })() : undefined,
-  text: argv.text,
-  html: argv.html,
-  attachments: argv.attachments as string[] | undefined,
-  dryRun: argv["dry-run"]
+  ...persisted,
+  provider: (argv.provider as Provider | undefined) ?? persisted.provider,
+  apiKey: argv["api-key"] ?? undefined,
+  baseUrl: (argv["base-url"] as string | undefined) ?? persisted.baseUrl,
+  from: (argv.from as string | undefined) ?? persisted.from,
+  to: (argv.to as string[] | undefined) ?? persisted.to,
+  cc: (argv.cc as string[] | undefined) ?? persisted.cc,
+  bcc: (argv.bcc as string[] | undefined) ?? persisted.bcc,
+  subject: (argv.subject as string | undefined) ?? persisted.subject,
+  replyTo: (argv["reply-to"] as string | undefined) ?? persisted.replyTo,
+  templateId: (argv["template-id"] as string | undefined) ?? persisted.templateId,
+  data: argv.data ? (() => { try { return JSON.parse(argv.data as string); } catch { return undefined; } })() : (persisted.data as any),
+  text: (argv.text as string | undefined) ?? persisted.text,
+  html: (argv.html as string | undefined) ?? persisted.html,
+  attachments: (argv.attachments as string[] | undefined) ?? persisted.attachments,
+  dryRun: argv["dry-run"],
 };
 
 // Launch TUI only for missing pieces
-const args = await promptMissingArgs(partial);
+const args = await promptMissingArgs(partial, { askAll: !argv.defaults });
 
 const payload = buildPayload(args);
+
+// Persist answers for future runs (exclude apiKey for safety)
+try { saveAnswers(args); } catch { /* ignore */ }
 
 if (args.dryRun) {
   // eslint-disable-next-line no-console

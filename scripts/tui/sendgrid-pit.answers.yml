@@ -1,0 +1,12 @@
+{
+  "provider": "pit",
+  "baseUrl": "http://localhost:8825",
+  "from": "michael@pointw.com",
+  "to": [
+    "richard@example.com"
+  ],
+  "subject": "Message for you, sir!",
+  "replyTo": "",
+  "text": "This is a test.",
+  "html": "<h3>Test message</h3><p>This is a test</p>"
+}
