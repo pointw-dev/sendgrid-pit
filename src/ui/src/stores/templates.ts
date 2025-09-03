@@ -25,6 +25,14 @@ export const useTemplatesStore = defineStore('templates', {
       );
       this.loaded = true;
     },
+    async reload() {
+      const res = await fetch('/api/templates');
+      const data = (await res.json()) as TemplateItem[];
+      this.templates = data.sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      this.loaded = true;
+    },
     async add(title: string, templateId: string, subject?: string) {
       const res = await fetch('/api/templates', {
         method: 'POST',
@@ -49,6 +57,20 @@ export const useTemplatesStore = defineStore('templates', {
       if (!res.ok) throw new Error('Failed to update template');
       const tpl = this.templates.find((t) => t.id === id);
       if (tpl) Object.assign(tpl, patch);
+    },
+    async upsert(tpl: TemplateItem) {
+      const res = await fetch(`/api/templates/${encodeURIComponent(tpl.id)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(tpl),
+      });
+      if (!res.ok && res.status !== 204) throw new Error('Failed to upsert template');
+    },
+    async importMany(items: TemplateItem[]) {
+      for (const t of items) {
+        await this.upsert(t);
+      }
+      await this.reload();
     },
   },
 });

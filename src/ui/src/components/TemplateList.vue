@@ -10,6 +10,13 @@
         Add Template
       </v-btn>
       <v-spacer />
+      <input ref="fileInput" type="file" accept="application/json,.json" style="display:none" @change="onFileChange" />
+      <v-btn size="x-small" variant="text" prepend-icon="mdi-download" @click="exportTemplates">
+        Export
+      </v-btn>
+      <v-btn size="x-small" variant="text" prepend-icon="mdi-upload" @click="triggerImport">
+        Import
+      </v-btn>
     </div>
     <div v-if="templates.length === 0" class="message-list-empty"><em>No templates yet.</em></div>
     <div v-else class="message-list-items">
@@ -59,7 +66,7 @@
 
 <script setup lang="ts">
 import { reactive, computed, ref } from 'vue';
-import type { TemplateItem as TItem } from '../stores/templates';
+import { useTemplatesStore, type TemplateItem as TItem } from '../stores/templates';
 import TemplateItem from './TemplateItem.vue';
 
 defineProps<{ templates: TItem[] }>();
@@ -72,6 +79,8 @@ const emit = defineEmits<{
 const dialog = ref(false);
 const form = reactive({ title: '', templateId: '', subject: '' });
 const isValid = computed(() => form.title.trim().length > 0 && form.templateId.trim().length > 0);
+const fileInput = ref<HTMLInputElement | null>(null);
+const store = useTemplatesStore();
 
 function openAddDialog() {
   form.title = '';
@@ -86,6 +95,43 @@ function confirmAdd() {
   dialog.value = false;
   // let parent handle persistence
   emit('add', payload);
+}
+
+function exportTemplates() {
+  const data = store.templates;
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'sendgrid-pit-templates.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function triggerImport() {
+  fileInput.value?.click();
+}
+
+async function onFileChange(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const file = input.files && input.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    if (!Array.isArray(parsed)) throw new Error('Invalid file format: expected an array');
+    // crude validation of required fields
+    const items = parsed.filter((t: any) => t && typeof t.id === 'string' && typeof t.title === 'string' && typeof t.templateId === 'string');
+    await store.importMany(items as TItem[]);
+  } catch (err: any) {
+    console.error(err);
+    window.alert(`Import failed: ${err?.message ?? err}`);
+  } finally {
+    // reset input so selecting same file again triggers change
+    if (input) input.value = '';
+  }
 }
 </script>
 

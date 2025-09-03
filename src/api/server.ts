@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto';
 import addFormats from 'ajv-formats';
 import { Validator, ValidationError } from 'express-json-validator-middleware';
 import { v3MailSend } from './message.schema';
-import { templateCreateSchema, templateUpdateSchema } from './template.schema.js';
+import { templateCreateSchema, templateUpdateSchema, templateUpsertSchema } from './template.schema.js';
 import { addClient, addMessage, getMessages, deleteMessage, setRead, clearMessages, markAllRead } from './store.js';
 import { addTemplate, deleteTemplate, getTemplates, updateTemplate as updateTemplateStore } from './template.store.js';
 
@@ -100,6 +100,39 @@ app.patch('/api/templates/:id', validate({ body: templateUpdateSchema }), async 
   const id = req.params.id;
   await updateTemplateStore(id, req.body ?? {});
   res.status(204).end();
+});
+
+// Upsert a template by ID (used for imports). If the template exists, update it;
+// otherwise create a new template with the provided ID and details.
+app.put('/api/templates/:id', validate({ body: templateUpsertSchema }), async (req, res) => {
+  const id = req.params.id;
+  const { title, templateId, templateBody, subject, testData, createdAt } = req.body ?? {};
+
+  const all = await getTemplates();
+  const exists = all.find((t) => t.id === id);
+
+  if (exists) {
+    await updateTemplateStore(id, {
+      title,
+      templateId,
+      templateBody: typeof templateBody === 'string' ? templateBody : '',
+      subject: typeof subject === 'string' ? subject : '',
+      testData: typeof testData === 'string' ? testData : '',
+    });
+    return res.status(204).end();
+  }
+
+  const tpl = {
+    id,
+    title,
+    templateId,
+    templateBody: typeof templateBody === 'string' ? templateBody : '',
+    subject: typeof subject === 'string' ? subject : '',
+    createdAt: typeof createdAt === 'string' ? createdAt : new Date().toISOString(),
+    testData: typeof testData === 'string' ? testData : '',
+  };
+  await addTemplate(tpl);
+  return res.status(201).json(tpl);
 });
 
 app.delete('/api/messages', async (_req, res) => {

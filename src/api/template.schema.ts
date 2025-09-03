@@ -25,3 +25,18 @@ export const templateUpdateSchema = {
   additionalProperties: false,
   minProperties: 1,
 } as JSONSchema7;
+
+export const templateUpsertSchema = {
+  type: 'object',
+  required: ['title', 'templateId'],
+  properties: {
+    id: { type: 'string', nullable: true },
+    title: { type: 'string', minLength: 1 },
+    templateId: { type: 'string', minLength: 1 },
+    templateBody: { type: 'string', nullable: true },
+    subject: { type: 'string', nullable: true },
+    testData: { type: 'string', nullable: true },
+    createdAt: { type: 'string', nullable: true },
+  },
+  additionalProperties: false,
+} as JSONSchema7;
