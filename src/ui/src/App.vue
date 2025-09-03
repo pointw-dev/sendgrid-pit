@@ -627,8 +627,7 @@ function onDragEnd() {
   color: black;
   background-color: #B3B7BB;
   border: 1px solid var(--color-accent);
-  border-top-left-radius: 10px;
-  border-top-right-radius: 10px;
+  border-radius: 10px; /* rounded on all corners */
   overflow: auto; /* allow scrolling for long content */
   flex: 1 1 auto; /* fill remaining space below header */
   display: flex;
@@ -723,8 +722,26 @@ function onDragEnd() {
 .rendered { flex: 1; overflow: auto; background: #ffffff; color: #000; border-radius: 4px; padding: 0; }
 .rendered-frame { width: 100%; height: 100%; border: 0; background: #fff; }
 .pane.right-bottom { flex: 1 1 0; }
-.splitter.vertical { width: 6px; cursor: col-resize; background: #2c3e50; margin: 0 4px; }
-.splitter.horizontal { height: 6px; cursor: row-resize; background: #2c3e50; margin: 4px 0; }
+.splitter.vertical { width: 6px; cursor: col-resize; background: #2c3e50; margin: 0 4px; position: relative; }
+.splitter.horizontal { height: 6px; cursor: row-resize; background: #2c3e50; margin: 4px 0; position: relative; }
+.splitter.vertical::after {
+  content: "";
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 3px; height: 3px;
+  background: #b0b0b0; border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 -5px 0 #b0b0b0, 0 5px 0 #b0b0b0; /* three stacked dots */
+}
+.splitter.horizontal::after {
+  content: "";
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 3px; height: 3px;
+  background: #b0b0b0; border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: -5px 0 0 #b0b0b0, 5px 0 0 #b0b0b0; /* three side-by-side dots */
+}
 
 /* Make v-textarea fill its container and show scrollbars */
 .editor :deep(.v-input) { height: 100%; display: flex; flex-direction: column; }
