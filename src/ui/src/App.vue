@@ -240,6 +240,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed, watch, onBeforeUnmount } from "vue";
+import * as Handlebars from 'handlebars';
 import { storeToRefs } from "pinia";
 import { useMessagesStore, type MailMessage } from "./stores/messages";
 import { useTemplatesStore, type TemplateItem as UITemplateItem } from "./stores/templates";
@@ -278,7 +279,8 @@ const isDirty = computed(() => {
 const renderedHtml = computed(() => {
   try {
     const data = draft.value.testData?.trim() ? JSON.parse(draft.value.testData) : {};
-    return simpleRender(draft.value.templateBody ?? '', data);
+    const tpl = draft.value.templateBody ?? '';
+    return renderWithHandlebars(tpl, data);
   } catch (e) {
     return `<pre style="color:#f88;">Invalid JSON in Test Data</pre>`;
   }
@@ -322,7 +324,7 @@ const tabs = computed<TabInfo[]>(() => {
     const tpl = templates.value?.find((t) => t.templateId === p.template_id);
     if (tpl?.templateBody) {
       try {
-        const rendered = simpleRender(String(tpl.templateBody), dyn);
+        const rendered = renderWithHandlebars(String(tpl.templateBody), dyn);
         result.push({
           label: "Rendered",
           value: "rendered",
@@ -528,17 +530,22 @@ function allBccEmails(msg: MailMessage) {
       .join(", ");
 }
 
-function simpleRender(template: string, data: any): string {
-  // Very basic {{path.to.value}} replacement; not full Handlebars.
-  return template.replace(/{{\s*([\w.$\-]+)\s*}}/g, (_m, path) => {
-    const parts = String(path).split('.');
-    let cur: any = data;
-    for (const p of parts) {
-      if (cur && Object.prototype.hasOwnProperty.call(cur, p)) cur = cur[p];
-      else return '';
-    }
-    return cur == null ? '' : String(cur);
-  });
+function renderWithHandlebars(template: string, data: any): string {
+  try {
+    const compiled = Handlebars.compile(template, { noEscape: false });
+    return compiled(data);
+  } catch (err: any) {
+    return `<pre style="color:#f88;">Handlebars error: ${escapeHtml(String(err?.message ?? err))}</pre>`;
+  }
+}
+
+function escapeHtml(s: string) {
+  return s
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 }
 
 function startDrag(type: 'vertical' | 'horizontal', evt: MouseEvent) {
