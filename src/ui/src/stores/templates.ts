@@ -6,6 +6,7 @@ export interface TemplateItem {
   templateId: string;
   templateBody: string;
   createdAt: string;
+  testData?: string;
 }
 
 export const useTemplatesStore = defineStore('templates', {
@@ -27,7 +28,7 @@ export const useTemplatesStore = defineStore('templates', {
       const res = await fetch('/api/templates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, templateId, templateBody: '' }),
+        body: JSON.stringify({ title, templateId, templateBody: '', testData: '' }),
       });
       if (!res.ok) throw new Error('Failed to create template');
       const tpl = (await res.json()) as TemplateItem;
@@ -38,6 +39,15 @@ export const useTemplatesStore = defineStore('templates', {
       await fetch(`/api/templates/${id}`, { method: 'DELETE' });
       this.templates = this.templates.filter((t) => t.id !== id);
     },
+    async update(id: string, patch: Partial<TemplateItem>) {
+      const res = await fetch(`/api/templates/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      if (!res.ok) throw new Error('Failed to update template');
+      const tpl = this.templates.find((t) => t.id === id);
+      if (tpl) Object.assign(tpl, patch);
+    },
   },
 });
-

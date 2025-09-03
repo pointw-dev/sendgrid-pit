@@ -20,6 +20,7 @@
     "express-json-validator-middleware": "^3.0.1",
     "mongodb": "^6.18.0",
     "pinia": "^3.0.3",
+    "prismjs": "^1.29.0",
     "vue": "^3.5.18",
     "vuetify": "^3.9.5"
   },

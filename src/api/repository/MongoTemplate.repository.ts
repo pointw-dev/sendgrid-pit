@@ -17,5 +17,10 @@ export class MongoTemplateRepository implements TemplateRepository {
     const res = await this.collection.deleteOne({ id });
     return res.deletedCount > 0;
   }
-}
 
+  async updateTemplate(id: string, patch: Partial<TemplateItem>): Promise<boolean> {
+    const { _id, id: _ignore, ...rest } = patch as any;
+    const res = await this.collection.updateOne({ id }, { $set: rest });
+    return res.matchedCount > 0;
+  }
+}

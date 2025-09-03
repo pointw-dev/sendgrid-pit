@@ -15,3 +15,6 @@ export async function deleteTemplate(id: string) {
   await repository.deleteTemplate(id);
 }
 
+export async function updateTemplate(id: string, patch: Partial<TemplateItem>) {
+  await repository.updateTemplate(id, patch);
+}

@@ -22,5 +22,11 @@ export class MemoryTemplateRepository implements TemplateRepository {
     }
     return false;
   }
-}
 
+  async updateTemplate(id: string, patch: Partial<TemplateItem>): Promise<boolean> {
+    const tpl = this.templates.find((t) => t.id === id);
+    if (!tpl) return false;
+    Object.assign(tpl, patch);
+    return true;
+  }
+}

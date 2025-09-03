@@ -73,6 +73,13 @@ export async function sendEmail() {
 
 * Event stream (SSE): `/events`
 
+### templates
+
+* List templates: `GET /api/templates`
+* Create template: `POST /api/templates` (body: `{ title: string, templateId: string }`)
+* Update template: `PATCH /api/templates/{id}` (any of: `title`, `templateId`, `templateBody`, `testData`)
+* Delete template: `DELETE /api/templates/{id}`
+
 ## UI
 
 * Browse to http://localhost:8825 (change the port here if you changed the `PORT` environment variable)
@@ -100,9 +107,9 @@ See `scripts/tui/README.md` for full CLI options and examples.
 
 * PORT - (default `8825`) the port the emulator listens on (both api and ui)
 * API_KEY - (optional) if set, causes the emulator to reject as unauthorized any POSTs to the send message endpoint if the sendgrid client was not configured with this API_KEY
-* MONGO_URI - (optional) if set, causes messages POSTed to the emulator to be saved in mongo - otherwise it is just stored in memory
-* MONGO_DB_NAME (default `sendgrid-pit`) - the name of the mongodb
-* MONGO_COLLECTION_NAME (default `messages`) the collection messages are saved to
+* MONGO_URI - (optional) if set, enables MongoDB persistence; otherwise data is stored in memory
+* MONGO_DB_NAME (default `sendgrid-pit`) - the MongoDB database name
+  - Collections are: `messages` and `templates`
 
 
 ## Roadmap
