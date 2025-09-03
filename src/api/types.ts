@@ -11,6 +11,7 @@ export interface TemplateItem {
   title: string;
   templateId: string; // external SendGrid template id
   templateBody: string; // editable body content (future)
+  subject?: string; // optional subject template (handlebars)
   createdAt: string; // ISO
   testData?: string; // JSON test data for rendering
 }

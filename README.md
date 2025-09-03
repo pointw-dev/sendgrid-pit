@@ -76,13 +76,18 @@ export async function sendEmail() {
 ### templates
 
 * List templates: `GET /api/templates`
-* Create template: `POST /api/templates` (body: `{ title: string, templateId: string }`)
-* Update template: `PATCH /api/templates/{id}` (any of: `title`, `templateId`, `templateBody`, `testData`)
+* Create template: `POST /api/templates` (body: `{ title: string, templateId: string, subject?: string, templateBody?: string, testData?: string }`)
+* Update template: `PATCH /api/templates/{id}` (any of: `title`, `templateId`, `subject`, `templateBody`, `testData`)
 * Delete template: `DELETE /api/templates/{id}`
+
+Templatized subjects
+- Templates can define a `subject` string that supports Handlebars (same data as the body).
+- When viewing a message that references a saved template (`template_id`) and includes `personalizations[n].dynamic_template_data`, the subject displayed is the rendered template subject; otherwise the message’s `subject` is shown.
 
 ## UI
 
 * Browse to http://localhost:8825 (change the port here if you changed the `PORT` environment variable)
+* Template editor allows editing Title, Template ID, Subject, Body, and Test Data. Subject appears under the Template ID and accepts Handlebars.
 
 ## CLI Sender (sg-sender)
 

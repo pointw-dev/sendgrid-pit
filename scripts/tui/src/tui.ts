@@ -101,10 +101,13 @@ export async function promptMissingArgs(partial: CliArgs, options?: { askAll?: b
 
   // dynamic data is captured via multiline editor below
 
-  // If using body
+  // Subject: only prompt in body mode (not when using dynamic template)
   if (askAll || !partial.subject) {
     qs.push({
-      type: (prev: unknown, values: any) => 'text',
+      type: (prev: unknown, values: any) => {
+        const usingTemplate = (values.mode ? values.mode === 'template' : defaultMode === 'template');
+        return usingTemplate ? null : 'text';
+      },
       name: 'subject', message: 'Subject', initial: partial.subject ?? 'Test Email'
     });
   }

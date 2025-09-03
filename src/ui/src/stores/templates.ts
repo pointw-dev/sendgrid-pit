@@ -5,6 +5,7 @@ export interface TemplateItem {
   title: string;
   templateId: string;
   templateBody: string;
+  subject?: string;
   createdAt: string;
   testData?: string;
 }
@@ -24,11 +25,11 @@ export const useTemplatesStore = defineStore('templates', {
       );
       this.loaded = true;
     },
-    async add(title: string, templateId: string) {
+    async add(title: string, templateId: string, subject?: string) {
       const res = await fetch('/api/templates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, templateId, templateBody: '', testData: '' }),
+        body: JSON.stringify({ title, templateId, templateBody: '', subject: subject ?? '', testData: '' }),
       });
       if (!res.ok) throw new Error('Failed to create template');
       const tpl = (await res.json()) as TemplateItem;

@@ -65,4 +65,4 @@ For multi‑line fields (`--html` and template `--data`), the CLI opens your edi
 Notes
 - Payloads are SendGrid‑compatible (`/v3/mail/send`).
 - Attachments are supported via file paths (comma‑separated or repeated).
-- `subject` is allowed in template mode (ignored if the template defines its own subject).
+- In Dynamic Template mode, the CLI does not prompt for `subject`. If you provide `--subject`, it is sent and used only when the template does not define its own subject.

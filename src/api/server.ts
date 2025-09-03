@@ -77,12 +77,13 @@ app.get('/api/templates', async (_req, res) => {
 });
 
 app.post('/api/templates', validate({ body: templateCreateSchema }), async (req, res) => {
-  const { title, templateId, templateBody, testData } = req.body ?? {};
+  const { title, templateId, templateBody, subject, testData } = req.body ?? {};
   const tpl = {
     id: randomUUID(),
     title,
     templateId,
     templateBody: typeof templateBody === 'string' ? templateBody : '',
+    subject: typeof subject === 'string' ? subject : '',
     createdAt: new Date().toISOString(),
     testData: typeof testData === 'string' ? testData : '',
   };

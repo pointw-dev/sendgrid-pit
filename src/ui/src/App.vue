@@ -39,13 +39,9 @@
                     <td>BCC:</td>
                     <td>{{ allBccEmails(selected) }}</td>
                   </tr>
-                  <tr v-if="selected.payload.subject">
+                  <tr v-if="effectiveSubject">
                     <td>Subject:</td>
-                    <td>{{ selected.payload.subject }}</td>
-                  </tr>
-                  <tr v-if="selected.payload.template_id">
-                    <td>Template ID:</td>
-                    <td>{{ selected.payload.template_id }}</td>
+                    <td>{{ effectiveSubject }}</td>
                   </tr>
                   <tr>
                     <td>Date:</td>
@@ -54,6 +50,18 @@
                   <tr v-if="selected.payload.reply_to">
                     <td>Reply To:</td>
                     <td>{{ selected.payload.reply_to.email }}</td>
+                  </tr>
+                  <tr v-if="selected.payload.template_id">
+                    <td>Template ID:</td>
+                    <td>
+                      {{ selected.payload.template_id }}
+                      <v-icon
+                        class="ml-1 copy-icon"
+                        size="small"
+                        :color="copiedTpl ? 'green' : undefined"
+                        @click="copyTemplateId(selected.payload.template_id)"
+                      >{{ copiedTpl ? 'mdi-check' : 'mdi-content-copy' }}</v-icon>
+                    </td>
                   </tr>
                   <tr>
                     <td>Message ID:</td>
@@ -97,10 +105,6 @@
               reverse-transition="fade-transition"
             >
               <div v-if="t.type === 'template'">
-                <p>
-                  The following data will be sent to SendGrid's template, ID:
-                  {{ t.templateId }}
-                </p>
                 <pre class="message-detail-body">{{ pretty(t.data) }}</pre>
               </div>
               <div v-else-if="t.type === 'html'">
@@ -166,6 +170,24 @@
                     class="id-input"
                     @keydown.enter.prevent="finishEdit('templateId')"
                     @blur="finishEdit('templateId')"
+                  />
+                </div>
+                <div class="editable-row">
+                  <span class="title">Subject:&nbsp;</span>
+                  <span v-if="!editingSubject" class="subtitle" @click="startEdit('subject')">
+                    {{ draft.subject || '—' }}
+                    <v-icon class="ml-1">mdi-pencil</v-icon>
+                  </span>
+                  <v-text-field
+                    v-else
+                    v-model="draft.subject"
+                    class="id-input"
+                    density="compact"
+                    hide-details
+                    variant="outlined"
+                    placeholder="Subject (Handlebars allowed)"
+                    @keydown.enter.prevent="finishEdit('subject')"
+                    @blur="finishEdit('subject')"
                   />
                 </div>
               </div>
@@ -266,12 +288,14 @@ const { templates } = storeToRefs(templateStore);
 const selected = ref<MailMessage | null>(null);
 const tab = ref("");
 const copied = ref(false);
+const copiedTpl = ref(false);
 const mainTab = ref<'messages' | 'templates'>('messages');
 const selectedTemplate = ref<UITemplateItem | null>(null);
 const confirmClose = ref(false);
-const draft = ref<{ title: string; templateId: string; templateBody: string; testData: string }>({ title: '', templateId: '', templateBody: '', testData: '' });
+const draft = ref<{ title: string; templateId: string; templateBody: string; subject: string; testData: string }>({ title: '', templateId: '', templateBody: '', subject: '', testData: '' });
 const editingTitle = ref(false);
 const editingTemplateId = ref(false);
+const editingSubject = ref(false);
 const gridEl = ref<HTMLElement | null>(null);
 const rightColEl = ref<HTMLElement | null>(null);
 const leftWidth = ref(0.5); // fraction [0.2, 0.8]
@@ -360,6 +384,7 @@ const isDirty = computed(() => {
     draft.value.title !== (selectedTemplate.value.title ?? '') ||
     draft.value.templateId !== (selectedTemplate.value.templateId ?? '') ||
     draft.value.templateBody !== (selectedTemplate.value.templateBody ?? '') ||
+    (draft.value.subject ?? '') !== (selectedTemplate.value.subject ?? '') ||
     (draft.value.testData ?? '') !== (selectedTemplate.value.testData ?? '')
   );
 });
@@ -398,7 +423,7 @@ const tabs = computed<TabInfo[]>(() => {
   }
   if (dyn) {
     result.push({
-      label: "Template",
+      label: "Template Data",
       value: "template",
       type: "template",
       data: dyn,
@@ -519,6 +544,31 @@ onBeforeUnmount(() => {
   window.removeEventListener('mouseup', onDragEnd);
 });
 
+// Compute effective subject: template subject (rendered) overrides payload subject
+const effectiveSubject = computed(() => {
+  const m = selected.value;
+  if (!m) return '';
+  const p: any = m.payload;
+  // Extract dynamic_template_data from first personalization with it
+  let dyn: any = null;
+  if (Array.isArray(p.personalizations)) {
+    for (const per of p.personalizations) {
+      if (per.dynamic_template_data) { dyn = per.dynamic_template_data; break; }
+    }
+  }
+  if (p.template_id && dyn) {
+    const tpl = templates.value?.find((t) => t.templateId === p.template_id);
+    if (tpl && tpl.subject && String(tpl.subject).length > 0) {
+      try {
+        return renderWithHandlebars(String(tpl.subject), dyn, { strict: false });
+      } catch {
+        // fall through to payload subject
+      }
+    }
+  }
+  return p.subject || '';
+});
+
 watch(mainTab, async (v) => {
   if (v === 'templates') {
     await templateStore.load();
@@ -537,8 +587,8 @@ async function deleteMessage(m: MailMessage) {
   }
 }
 
-async function addTemplate(payload: { title: string; templateId: string }) {
-  await templateStore.add(payload.title, payload.templateId);
+async function addTemplate(payload: { title: string; templateId: string; subject?: string }) {
+  await templateStore.add(payload.title, payload.templateId, payload.subject ?? '');
 }
 
 function selectTemplate(t: UITemplateItem) {
@@ -547,10 +597,12 @@ function selectTemplate(t: UITemplateItem) {
     title: t.title ?? '',
     templateId: t.templateId ?? '',
     templateBody: t.templateBody ?? '',
+    subject: t.subject ?? '',
     testData: t.testData ?? '',
   };
   editingTitle.value = false;
   editingTemplateId.value = false;
+  editingSubject.value = false;
 }
 
 async function deleteTemplate(t: UITemplateItem) {
@@ -558,12 +610,29 @@ async function deleteTemplate(t: UITemplateItem) {
   if (selectedTemplate.value?.id === t.id) selectedTemplate.value = null;
 }
 
-function startEdit(field: 'title' | 'templateId') {
-  if (field === 'title') editingTitle.value = true; else editingTemplateId.value = true;
+function startEdit(field: 'title' | 'templateId' | 'subject') {
+  if (field === 'title') editingTitle.value = true;
+  else if (field === 'templateId') editingTemplateId.value = true;
+  else editingSubject.value = true;
 }
 
-function finishEdit(field: 'title' | 'templateId') {
-  if (field === 'title') editingTitle.value = false; else editingTemplateId.value = false;
+function finishEdit(field: 'title' | 'templateId' | 'subject') {
+  const id = selectedTemplate.value?.id;
+  if (!id) return;
+  const patch: any = {};
+  if (field === 'title') {
+    editingTitle.value = false;
+    if (draft.value.title !== selectedTemplate.value?.title) patch.title = draft.value.title;
+  } else if (field === 'templateId') {
+    editingTemplateId.value = false;
+    if (draft.value.templateId !== selectedTemplate.value?.templateId) patch.templateId = draft.value.templateId;
+  } else if (field === 'subject') {
+    editingSubject.value = false;
+    if ((draft.value.subject ?? '') !== (selectedTemplate.value?.subject ?? '')) patch.subject = draft.value.subject ?? '';
+  }
+  if (Object.keys(patch).length > 0) {
+    templateStore.update(id, patch);
+  }
 }
 
 async function saveDraft() {
@@ -589,6 +658,16 @@ async function copyId(id: string) {
     setTimeout(() => (copied.value = false), 2000);
   } catch (err) {
     console.error("Failed to copy message ID", err);
+  }
+}
+
+async function copyTemplateId(id: string) {
+  try {
+    await navigator.clipboard.writeText(id);
+    copiedTpl.value = true;
+    setTimeout(() => (copiedTpl.value = false), 2000);
+  } catch (err) {
+    console.error("Failed to copy template ID", err);
   }
 }
 

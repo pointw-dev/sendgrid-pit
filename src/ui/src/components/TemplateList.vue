@@ -40,6 +40,14 @@
           hide-details
           variant="outlined"
         />
+        <v-text-field
+          v-model="form.subject"
+          label="Subject (Handlebars allowed)"
+          density="comfortable"
+          hide-details
+          variant="outlined"
+          class="mt-2"
+        />
         <div class="d-flex justify-end mt-4" style="gap: 8px;">
           <v-btn variant="text" @click="dialog=false">Cancel</v-btn>
           <v-btn class="bg-light-blue-darken-4" :disabled="!isValid" @click="confirmAdd">OK</v-btn>
@@ -58,22 +66,23 @@ defineProps<{ templates: TItem[] }>();
 const emit = defineEmits<{
   (e: 'select', tpl: TItem): void;
   (e: 'delete', tpl: TItem): void;
-  (e: 'add', payload: { title: string; templateId: string }): void;
+  (e: 'add', payload: { title: string; templateId: string; subject?: string }): void;
 }>();
 
 const dialog = ref(false);
-const form = reactive({ title: '', templateId: '' });
+const form = reactive({ title: '', templateId: '', subject: '' });
 const isValid = computed(() => form.title.trim().length > 0 && form.templateId.trim().length > 0);
 
 function openAddDialog() {
   form.title = '';
   form.templateId = '';
+  form.subject = '';
   dialog.value = true;
 }
 
 function confirmAdd() {
   if (!isValid.value) return;
-  const payload = { title: form.title.trim(), templateId: form.templateId.trim() };
+  const payload = { title: form.title.trim(), templateId: form.templateId.trim(), subject: form.subject.trim() };
   dialog.value = false;
   // let parent handle persistence
   emit('add', payload);
