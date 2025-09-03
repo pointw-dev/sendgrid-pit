@@ -45,7 +45,7 @@
                   </tr>
                   <tr>
                     <td>Date:</td>
-                    <td>{{ new Date(selected.receivedAt).toLocaleString() }}</td>
+                    <td>{{ formatIsoDateWithLocalTime(selected.receivedAt) }}</td>
                   </tr>
                   <tr v-if="selected.payload.reply_to">
                     <td>Reply To:</td>
@@ -101,8 +101,7 @@
               v-for="t in tabs"
               :key="t.value"
               :value="t.value"
-              transition="fade-transition"
-              reverse-transition="fade-transition"
+              
             >
               <div v-if="t.type === 'template'">
                 <pre class="message-detail-body">{{ pretty(t.data) }}</pre>
@@ -301,6 +300,12 @@ const rightColEl = ref<HTMLElement | null>(null);
 const leftWidth = ref(0.5); // fraction [0.2, 0.8]
 const topHeight = ref(0.2); // fraction [min,max]
 const dragging = ref<null | 'vertical' | 'horizontal'>(null);
+
+function formatIsoDateWithLocalTime(value: any): string {
+  const d = dayjs(value);
+  if (!d.isValid()) return '';
+  return d.format('YYYY-MM-DD hh:mm:ss A');
+}
 
 // Register SendGrid-like helpers once
 let __sg_helpers_registered = false;
@@ -790,7 +795,9 @@ function onDragEnd() {
 
 .tab-bar {
   background-color: transparent;
-  margin-bottom: -1px; /* let tabs overlap content border by 1px */
+  margin-bottom: 0; /* prevent overlap with content panel */
+  position: relative;
+  z-index: 3; /* ensure tabs render above scrolling content */
 }
 
 .copy-icon {
@@ -803,15 +810,27 @@ function onDragEnd() {
   border: 1px solid var(--color-accent);
   border-radius: 10px; /* rounded on all corners */
   overflow: auto; /* allow scrolling for long content */
-  flex: 1 1 auto; /* fill remaining space below header */
+  flex: 1 1 0; /* fill remaining space below header; do not size from content */
   display: flex;
   flex-direction: column;
   min-height: 0;
+  position: relative; /* create stacking context beneath tabs */
+  z-index: 1;
 }
 .message-view :deep(.v-window__container) { height: 100%; }
 .message-view :deep(.v-window-item) { height: 100%; }
 .message-view :deep(.v-window-item__container) { height: 100%; display: flex; flex-direction: column; min-height: 0; }
 .rendered-container { height: 100%; display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+
+/* Disable Vuetify window/fade transitions for stable layout */
+:deep(.v-window-x-transition-enter-active),
+:deep(.v-window-x-transition-leave-active),
+:deep(.v-window-y-transition-enter-active),
+:deep(.v-window-y-transition-leave-active),
+:deep(.v-fade-transition-enter-active),
+:deep(.v-fade-transition-leave-active) {
+  transition: none !important;
+}
 
 .bottom-tabs {
   display: flex;
@@ -953,8 +972,5 @@ function onDragEnd() {
 .tab-bar :deep(.v-tab--selected) {
   background: #2c3e50;
   font-weight: 700;
-  margin-bottom: -1px; /* overlap content panel border */
-  position: relative;
-  z-index: 2;
 }
 </style>
