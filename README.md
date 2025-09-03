@@ -118,7 +118,6 @@ See `scripts/tui/README.md` for full CLI options and examples.
 
 
 ## Roadmap
-* render templates in viewer
 * improved message list (group by sender | recipient/mailbox | none, sorting, searching, filtering)
 * forward from sendgrid-pit to SendGrid (?) - adjusting message id
   * get status of actual delivery using message id
