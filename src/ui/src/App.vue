@@ -199,6 +199,15 @@
             </div>
           </div>
           <div class="action-bar">
+            <v-switch
+              v-model="hbStrict"
+              color="primary"
+              hide-details
+              density="compact"
+              inset
+              class="mr-2"
+              :label="`Strict`"
+            />
             <v-spacer></v-spacer>
             <v-btn class="bg-light-blue-darken-4" :disabled="!isDirty" @click="saveDraft">Save</v-btn>
           </div>
@@ -241,6 +250,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch, onBeforeUnmount } from "vue";
 import * as Handlebars from 'handlebars';
+import dayjs from 'dayjs';
 import { storeToRefs } from "pinia";
 import { useMessagesStore, type MailMessage } from "./stores/messages";
 import { useTemplatesStore, type TemplateItem as UITemplateItem } from "./stores/templates";
@@ -267,6 +277,83 @@ const rightColEl = ref<HTMLElement | null>(null);
 const leftWidth = ref(0.5); // fraction [0.2, 0.8]
 const topHeight = ref(0.2); // fraction [min,max]
 const dragging = ref<null | 'vertical' | 'horizontal'>(null);
+
+// Register SendGrid-like helpers once
+let __sg_helpers_registered = false;
+function registerSendGridLikeHelpers() {
+  if (__sg_helpers_registered) return;
+  __sg_helpers_registered = true;
+
+  function makeBlockOrInline(fn: (...args: any[]) => boolean) {
+    return function(this: any, ...args: any[]) {
+      const maybeOptions = args[args.length - 1];
+      if (maybeOptions && typeof maybeOptions === 'object' && 'fn' in maybeOptions) {
+        const options = maybeOptions as Handlebars.HelperOptions;
+        const res = fn.apply(this, args.slice(0, -1));
+        return res ? options.fn(this) : options.inverse(this);
+      }
+      return fn.apply(this, args);
+    } as Handlebars.HelperDelegate;
+  }
+
+  Handlebars.registerHelper('eq', makeBlockOrInline((a, b) => a == b));
+  Handlebars.registerHelper('ne', makeBlockOrInline((a, b) => a != b));
+  Handlebars.registerHelper('strictEq', makeBlockOrInline((a, b) => a === b));
+  Handlebars.registerHelper('strictNe', makeBlockOrInline((a, b) => a !== b));
+  Handlebars.registerHelper('gt', makeBlockOrInline((a: any, b: any) => a > b));
+  Handlebars.registerHelper('gte', makeBlockOrInline((a: any, b: any) => a >= b));
+  Handlebars.registerHelper('lt', makeBlockOrInline((a: any, b: any) => a < b));
+  Handlebars.registerHelper('lte', makeBlockOrInline((a: any, b: any) => a <= b));
+
+  Handlebars.registerHelper('and', function(...args: any[]) {
+    const vals = args.slice(0, -1);
+    return vals.every(Boolean);
+  });
+  Handlebars.registerHelper('or', function(...args: any[]) {
+    const vals = args.slice(0, -1);
+    return vals.some(Boolean);
+  });
+  Handlebars.registerHelper('not', (v: any) => !v);
+
+  Handlebars.registerHelper('math', (l: any, op: string, r: any) => {
+    const a = Number(l); const b = Number(r);
+    switch (op) {
+      case '+': return a + b;
+      case '-': return a - b;
+      case '*': return a * b;
+      case '/': return b === 0 ? 0 : a / b;
+      case '%': return b === 0 ? 0 : a % b;
+      default: return NaN;
+    }
+  });
+
+  Handlebars.registerHelper('uppercase', (s: any) => String(s ?? '').toUpperCase());
+  Handlebars.registerHelper('lowercase', (s: any) => String(s ?? '').toLowerCase());
+  Handlebars.registerHelper('capitalize', (s: any) => {
+    const str = String(s ?? '');
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  });
+  Handlebars.registerHelper('replace', (s: any, search: any, repl: any) => String(s ?? '').split(String(search ?? '')).join(String(repl ?? '')));
+
+  Handlebars.registerHelper('length', (v: any) => (v?.length ?? (typeof v === 'object' && v ? Object.keys(v).length : 0)));
+  Handlebars.registerHelper('contains', (h: any, n: any) => {
+    if (Array.isArray(h)) return h.includes(n);
+    const hs = String(h ?? '');
+    return hs.includes(String(n ?? ''));
+  });
+  Handlebars.registerHelper('join', (arr: any, sep: any) => Array.isArray(arr) ? arr.join(String(sep ?? ', ')) : '');
+  Handlebars.registerHelper('default', (val: any, fallback: any) => (val === undefined || val === null || val === '') ? fallback : val);
+  Handlebars.registerHelper('json', (v: any, spaces?: any) => JSON.stringify(v, null, Number(spaces ?? 0)));
+  Handlebars.registerHelper('formatDate', (value: any, fmt?: any) => {
+    const d = dayjs(value);
+    if (!d.isValid()) return '';
+    return d.format(String(fmt ?? 'YYYY-MM-DD HH:mm'));
+  });
+}
+registerSendGridLikeHelpers();
+
+const hbStrict = ref(false);
+
 const isDirty = computed(() => {
   if (!selectedTemplate.value) return false;
   return (
@@ -280,7 +367,7 @@ const renderedHtml = computed(() => {
   try {
     const data = draft.value.testData?.trim() ? JSON.parse(draft.value.testData) : {};
     const tpl = draft.value.templateBody ?? '';
-    return renderWithHandlebars(tpl, data);
+    return renderWithHandlebars(tpl, data, { strict: hbStrict.value });
   } catch (e) {
     return `<pre style="color:#f88;">Invalid JSON in Test Data</pre>`;
   }
@@ -324,7 +411,7 @@ const tabs = computed<TabInfo[]>(() => {
     const tpl = templates.value?.find((t) => t.templateId === p.template_id);
     if (tpl?.templateBody) {
       try {
-        const rendered = renderWithHandlebars(String(tpl.templateBody), dyn);
+        const rendered = renderWithHandlebars(String(tpl.templateBody), dyn, { strict: false });
         result.push({
           label: "Rendered",
           value: "rendered",
@@ -422,6 +509,7 @@ onMounted(async () => {
   store.connectSSE();
   // Ensure templates are available for conditional message rendering tab
   await templateStore.load();
+  registerSendGridLikeHelpers();
   window.addEventListener('mousemove', onDragMove);
   window.addEventListener('mouseup', onDragEnd);
 });
@@ -530,9 +618,9 @@ function allBccEmails(msg: MailMessage) {
       .join(", ");
 }
 
-function renderWithHandlebars(template: string, data: any): string {
+function renderWithHandlebars(template: string, data: any, opts?: { strict?: boolean }): string {
   try {
-    const compiled = Handlebars.compile(template, { noEscape: false });
+    const compiled = Handlebars.compile(template, { noEscape: false, strict: !!opts?.strict });
     return compiled(data);
   } catch (err: any) {
     return `<pre style="color:#f88;">Handlebars error: ${escapeHtml(String(err?.message ?? err))}</pre>`;
