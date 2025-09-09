@@ -7,17 +7,26 @@
 
 ## Quick start
 
+### Get it
 
-### Run the emulator
+Get the image from [docker hub](https://hub.docker.com/r/pointw/sendgrid-pit)
 
-Use the included docker-compose.yml file to spin up sendgrid-pit and mongo, or use this to copy into your own docker-compose.yml file.
+```bash
+docker pull pointw/sendgrid-pit
+```
+
+
+### Run it
+
+Use the included **docker-compose.yml** file to spin up sendgrid-pit and mongo, or use this to copy into your own docker-compose.yml file.
 
 Alternately (minimal and ephemeral)
 ```bash
 docker run -d --rm --name sendgrid-pit -p 8825:8825 pointw/sendgrid-pit
 ```
 
-## Use the emulator
+### Use it
+
 Here is a simple Typescript that connects the emulator instead of the real SendGrid service:
 
 
