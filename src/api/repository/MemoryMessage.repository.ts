@@ -14,6 +14,10 @@ export class MemoryMessageRepository implements MessageRepository {
       );
   }
 
+  async getMessageCount(): Promise<number> {
+    return this.messages.length;
+  }
+
   async addMessage(msg: MailMessage): Promise<void> {
     console.log('memory addMessage()')
     this.messages.push(msg);

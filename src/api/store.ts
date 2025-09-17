@@ -15,6 +15,10 @@ export async function getMessages() {
   return repository.getMessages();
 }
 
+export async function getMessageCount() {
+  return repository.getMessageCount();
+}
+
 export async function addMessage(msg: MailMessage) {
   await repository.addMessage(msg);
   broadcast("message", msg);

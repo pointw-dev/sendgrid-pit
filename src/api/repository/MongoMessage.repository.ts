@@ -12,6 +12,10 @@ export class MongoMessageRepository implements MessageRepository {
       .toArray();
   }
 
+  async getMessageCount(): Promise<number> {
+    return this.collection.countDocuments({});
+  }
+
   async addMessage(msg: MailMessage): Promise<void> {
     console.log('mongo addMessage()')
     await this.collection.insertOne(msg);

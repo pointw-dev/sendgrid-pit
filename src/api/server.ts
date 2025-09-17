@@ -7,7 +7,7 @@ import addFormats from 'ajv-formats';
 import { Validator, ValidationError } from 'express-json-validator-middleware';
 import { v3MailSend } from './message.schema';
 import { templateCreateSchema, templateUpdateSchema, templateUpsertSchema } from './template.schema.js';
-import { addClient, addMessage, getMessages, deleteMessage, setRead, clearMessages, markAllRead } from './store.js';
+import { addClient, addMessage, getMessages, getMessageCount, deleteMessage, setRead, clearMessages, markAllRead } from './store.js';
 import { addTemplate, deleteTemplate, getTemplates, updateTemplate as updateTemplateStore } from './template.store.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -65,6 +65,11 @@ app.post(
 );
 
 app.get('/api/messages', async (_req, res) => res.json(await getMessages()));
+
+app.get('/api/messages/count', async (_req, res) => {
+  const count = await getMessageCount();
+  res.json({ count });
+});
 
 app.delete('/api/messages/:id', async (req, res) => {
   await deleteMessage(req.params.id);
