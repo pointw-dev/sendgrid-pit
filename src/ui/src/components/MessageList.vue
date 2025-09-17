@@ -4,6 +4,7 @@
   </div>
   <section v-else class="message-list">
     <div class="message-list-toolbar">
+      <div class="message-count">{{ messages.length }} messages</div>
       <v-spacer></v-spacer>
       <v-btn
         class="bg-red-darken-4"
@@ -71,6 +72,11 @@ onUnmounted(() => {
   gap: 0.5rem;
   padding-bottom: 0.5rem;
 }
+.message-count {
+  font-size: 10px;
+  opacity: 0.7;
+  align-self: center;
+}
 .message-list-items {
   list-style: none;
   font-size: 9pt;
@@ -83,4 +89,3 @@ onUnmounted(() => {
   color: silver;
 }
 </style>
-
