@@ -19,6 +19,7 @@ export default defineConfig({
     fs: {
       allow: [projectRoot],
     },
+    allowedHosts: true
   },
   build: {
     outDir: "dist",
