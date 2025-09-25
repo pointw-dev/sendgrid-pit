@@ -64,7 +64,7 @@ async function sendEmail(url, content) {
     const message: MailDataRequired = {
         // to: ['michael@pointw.com', 'to2@pointw.com'],
         // cc: ['cc1@pointw.com', 'cc2@pointw.com'],
-        // bcc: ['bcc1@pointw.com', 'bcc2@pointw.com'],
+        bcc: ['John Doe <bcc1@pointw.com>', 'bcc2@pointw.com'],
         to: 'notification-scheduler@trinnex.io, someone-else@pernod-ricard.ca',
         from: 'richard@pointw.com',
         replyTo: 'ottosonm@gmail.com',

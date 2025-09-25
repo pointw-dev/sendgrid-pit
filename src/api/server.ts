@@ -30,6 +30,57 @@ const API_KEY = process.env.API_KEY ?? 'unset';
 app.use(cors());
 app.use(express.json({ limit: '2mb' }));
 
+// Helper: extract an email from a string or object
+function extractEmail(v: unknown): string | null {
+  if (!v) return null;
+  if (typeof v === 'string') {
+    // Handle formats like "Name <email@domain.com>" or just "email@domain.com"
+    const angleMatch = v.match(/<([^>]+)>/);
+    const raw = angleMatch ? angleMatch[1] : v;
+    return raw.trim().toLowerCase();
+  }
+  if (typeof v === 'object' && 'email' in (v as Record<string, unknown>)) {
+    const email = (v as { email?: unknown }).email;
+    if (typeof email === 'string') return email.trim().toLowerCase();
+  }
+  return null;
+}
+
+// Helper: does a field (to/cc/bcc) contain recipient
+function isRecipientInField(
+  field: Array<string | { email: string; name?: string }> | undefined,
+  recipient: string
+): boolean {
+  if (!field || !Array.isArray(field)) return false;
+  const target = recipient.trim().toLowerCase();
+  return field.some((item) => extractEmail(item) === target);
+}
+
+// Helper: does the message payload contain recipient in any to/cc/bcc
+function isRecipientInMessage(payload: unknown, recipient: string): boolean {
+  const msg: any = payload ?? {};
+
+  // Check top-level fields (tolerate either string or object entries)
+  if (
+    isRecipientInField(msg?.to, recipient) ||
+    isRecipientInField(msg?.cc, recipient) ||
+    isRecipientInField(msg?.bcc, recipient)
+  ) {
+    return true;
+  }
+
+  // Check personalizations array
+  if (Array.isArray(msg?.personalizations)) {
+    return msg.personalizations.some((p: any) =>
+      isRecipientInField(p?.to, recipient) ||
+      isRecipientInField(p?.cc, recipient) ||
+      isRecipientInField(p?.bcc, recipient)
+    );
+  }
+
+  return false;
+}
+
 // API
 app.post(
   '/v3/mail/send',
@@ -64,7 +115,13 @@ app.post(
   }
 );
 
-app.get('/api/messages', async (_req, res) => res.json(await getMessages()));
+app.get('/api/messages', async (req, res) => {
+  const email = typeof req.query.email === 'string' ? req.query.email : undefined;
+  const all = await getMessages();
+  if (!email) return res.json(all);
+  const filtered = all.filter((m) => isRecipientInMessage(m.payload, email));
+  return res.json(filtered);
+});
 
 app.get('/api/messages/count', async (_req, res) => {
   const count = await getMessageCount();
@@ -140,9 +197,19 @@ app.put('/api/templates/:id', validate({ body: templateUpsertSchema }), async (r
   return res.status(201).json(tpl);
 });
 
-app.delete('/api/messages', async (_req, res) => {
-  await clearMessages();
-  res.status(204).end();
+app.delete('/api/messages', async (req, res) => {
+  const email = typeof req.query.email === 'string' ? req.query.email : undefined;
+  if (!email) {
+    await clearMessages();
+    return res.status(204).end();
+  }
+
+  const all = await getMessages();
+  const toDelete = all.filter((m) => isRecipientInMessage(m.payload, email));
+  for (const m of toDelete) {
+    await deleteMessage(m.id);
+  }
+  return res.status(204).end();
 });
 
 app.patch('/api/messages/:id', async (req, res) => {

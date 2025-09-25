@@ -73,8 +73,11 @@ export async function sendEmail() {
 > The UI uses these endpoints.  You may find use for them too.
 
 * Retrieve sent messages: `GET /api/messages`
+  - Optional filter: `?email=user@example.com` returns only messages where that address appears in any recipient field (To/CC/BCC), including inside `personalizations[].to/cc/bcc`.
 
 * Delete sent mail(s): `DELETE /api/messages/{messageId}`
+  - Bulk delete: `DELETE /api/messages` clears all messages.
+  - Targeted delete: `DELETE /api/messages?email=user@example.com` deletes only messages where that address is a recipient (To/CC/BCC, including `personalizations`).
 
 * Mark mails as read:
   * single mail: `PATCH /api/messages/{messageId}`  (`read` field only allowed)

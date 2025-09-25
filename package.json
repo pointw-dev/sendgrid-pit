@@ -1,6 +1,6 @@
 {
   "name": "sendgrid-pit",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "description": "sendgrid-pit serves as an emulator of Twilio's SendGrid service.",
   "private": true,
   "type": "module",
