@@ -10,6 +10,14 @@
           <span class="label">To:</span>
           <span class="truncate">{{ toList }}</span>
         </div>
+        <div class="line" v-if="ccList">
+          <span class="label">CC:</span>
+          <span class="truncate">{{ ccList }}</span>
+        </div>
+        <div class="line" v-if="bccList">
+          <span class="label">BCC:</span>
+          <span class="truncate">{{ bccList }}</span>
+        </div>
         <div class="line">
           <span class="truncate-2">{{ bodyPreview }}</span>
         </div>
@@ -43,6 +51,28 @@ const toList = computed(() => {
   try {
     return (props.message?.payload?.personalizations ?? [])
       .flatMap((p: any) => (p?.to ?? []).map((t: any) => t?.email))
+      .filter(Boolean)
+      .join(', ');
+  } catch {
+    return '';
+  }
+});
+
+const ccList = computed(() => {
+  try {
+    return (props.message?.payload?.personalizations ?? [])
+      .flatMap((p: any) => (p?.cc ?? []).map((c: any) => c?.email))
+      .filter(Boolean)
+      .join(', ');
+  } catch {
+    return '';
+  }
+});
+
+const bccList = computed(() => {
+  try {
+    return (props.message?.payload?.personalizations ?? [])
+      .flatMap((p: any) => (p?.bcc ?? []).map((b: any) => b?.email))
       .filter(Boolean)
       .join(', ');
   } catch {
