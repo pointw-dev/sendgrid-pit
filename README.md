@@ -1,4 +1,4 @@
-<img src="https://www.pointw.com/img/sendgrid-pit-logo.svg?v=2" width="150px">
+<img src="./img/logo.svg" width="150px">
 
 # sendgrid-pit
 > mailpit for sendgrid
